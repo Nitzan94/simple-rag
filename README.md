@@ -49,13 +49,31 @@ Table auto-created: id (UUID), chunk_text, embedding (vector 768), filename, spl
 
 ## Usage
 
+### Streamlit UI (Recommended)
+
+Run the web interface:
+
+```bash
+uv run streamlit run app.py
+```
+
+Features:
+- **Single File / Batch Upload**: Upload one or multiple files via tabs
+- **Live Settings**: Configure chunking strategy, embeddings, PostgreSQL in sidebar
+- **Real-time Preview**: View chunks inline with markdown rendering
+- **Downloads**: Download individual chunks and embeddings.json
+- **Statistics**: Processing time, file size, chunk count
+- **Database Status**: View PostgreSQL connection and total chunks stored
+
+### CLI (Command Line)
+
 Run the converter:
 
 ```bash
 uv run python index_documents.py
 ```
 
-### Interactive Workflow
+#### Interactive Workflow
 
 1. **Choose conversion mode**:
    - `1` - Convert a specific file
@@ -109,7 +127,8 @@ output/
 simple-rag/
  .env                      # API keys (not in git)
  .venv/                    # Virtual environment
- index_documents.py        # Main converter script
+ app.py                    # Streamlit UI
+ index_documents.py        # Core converter functions (CLI + lib)
  pyproject.toml            # Project dependencies
  README.md                 # This file
  output/                   # Converted files
@@ -123,6 +142,7 @@ simple-rag/
 - `google-generativeai>=0.8.5` - Gemini embeddings
 - `psycopg[binary]>=3.1.0` - PostgreSQL driver
 - `pgvector>=0.4.1` - Vector extension for PostgreSQL
+- `streamlit>=1.51.0` - Web UI framework
 
 ## Development
 
