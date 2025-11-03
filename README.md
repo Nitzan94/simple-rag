@@ -18,7 +18,7 @@ Document to Markdown converter with Hebrew RTL support, multiple chunking strate
 
 ```bash
 # Clone or navigate to project
-cd jeen-ai-solution
+cd simple-rag
 
 # Install with uv (recommended)
 uv sync
@@ -52,13 +52,7 @@ Table auto-created: id (UUID), chunk_text, embedding (vector 768), filename, spl
 Run the converter:
 
 ```bash
-uv run python main.py
-```
-
-Or use the batch converter directly:
-
-```bash
-uv run python batch_convert_pdf.py
+uv run python index_documents.py
 ```
 
 ### Interactive Workflow
@@ -112,11 +106,10 @@ output/
 ## Project Structure
 
 ```
-jeen-ai-solution/
+simple-rag/
  .env                      # API keys (not in git)
  .venv/                    # Virtual environment
- main.py                   # Main converter script
- batch_convert_pdf.py      # Batch converter (same as main)
+ index_documents.py        # Main converter script
  pyproject.toml            # Project dependencies
  README.md                 # This file
  output/                   # Converted files
@@ -142,7 +135,7 @@ uv add package-name
 Run in development:
 
 ```bash
-uv run python main.py
+uv run python index_documents.py
 ```
 
 ## License
