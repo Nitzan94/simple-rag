@@ -6,6 +6,10 @@ from pathlib import Path
 from docx import Document
 from dotenv import load_dotenv
 import google.generativeai as genai
+import psycopg
+from pgvector.psycopg import register_vector
+from datetime import datetime
+import uuid
 
 # Load environment variables
 load_dotenv()
@@ -209,7 +213,73 @@ def generate_embedding(text, api_key):
         print(f"[WARN] Failed to generate embedding: {e}")
         return None
 
-def save_chunks(chunks, base_output_path, enable_embedding=False, api_key=None):
+def create_table(conn):
+    """Create document_chunks table with pgvector extension if it doesn't exist"""
+    try:
+        with conn.cursor() as cur:
+            # Enable pgvector extension
+            cur.execute("CREATE EXTENSION IF NOT EXISTS vector")
+
+            # Create table
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS document_chunks (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    chunk_text TEXT NOT NULL,
+                    embedding vector(768),
+                    filename TEXT NOT NULL,
+                    split_strategy TEXT NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+
+            # Create index for vector similarity search
+            cur.execute("""
+                CREATE INDEX IF NOT EXISTS document_chunks_embedding_idx
+                ON document_chunks USING ivfflat (embedding vector_cosine_ops)
+            """)
+
+            conn.commit()
+            print("  [DATABASE] Table created/verified successfully")
+    except Exception as e:
+        print(f"  [WARN] Failed to create table: {e}")
+        conn.rollback()
+
+def save_to_database(chunks_data, postgres_url):
+    """Save chunks and embeddings to PostgreSQL database"""
+    if not postgres_url:
+        return False
+
+    try:
+        with psycopg.connect(postgres_url) as conn:
+            # Register pgvector extension
+            register_vector(conn)
+
+            # Create table if doesn't exist
+            create_table(conn)
+
+            with conn.cursor() as cur:
+                for chunk_data in chunks_data:
+                    cur.execute("""
+                        INSERT INTO document_chunks
+                        (chunk_text, embedding, filename, split_strategy, created_at)
+                        VALUES (%s, %s, %s, %s, %s)
+                    """, (
+                        chunk_data['chunk_text'],
+                        chunk_data['embedding'],
+                        chunk_data['filename'],
+                        chunk_data['split_strategy'],
+                        chunk_data.get('created_at', datetime.now())
+                    ))
+
+            conn.commit()
+            print(f"  [DATABASE] Saved {len(chunks_data)} chunks to PostgreSQL")
+            return True
+
+    except Exception as e:
+        print(f"  [WARN] Failed to save to database: {e}")
+        return False
+
+def save_chunks(chunks, base_output_path, enable_embedding=False, api_key=None, split_strategy='fixed', postgres_url=None):
     """Save chunks as separate numbered files in a dedicated folder"""
     saved_files = []
     base_name = base_output_path.stem
@@ -254,10 +324,26 @@ def save_chunks(chunks, base_output_path, enable_embedding=False, api_key=None):
             json.dump(embeddings_data, f, indent=2, ensure_ascii=False)
         print(f"  [EMBEDDING] Saved {len(embeddings_data)} embeddings to embeddings.json")
 
+        # Save to database if configured
+        if postgres_url:
+            # Prepare database data
+            db_chunks_data = []
+            for chunk_data in embeddings_data:
+                db_chunks_data.append({
+                    'chunk_text': chunks[chunk_data['chunk_id'] - 1],
+                    'embedding': chunk_data['embedding'],
+                    'filename': base_name,
+                    'split_strategy': split_strategy,
+                    'created_at': datetime.now()
+                })
+
+            # Save to database
+            save_to_database(db_chunks_data, postgres_url)
+
     return chunks_folder, saved_files
 
 def convert_file(file_path, output_path, enable_chunking=False, chunk_strategy='fixed',
-                 chunk_size=1000, overlap=200, enable_embedding=False, api_key=None):
+                 chunk_size=1000, overlap=200, enable_embedding=False, api_key=None, postgres_url=None):
     """Convert a single file based on its extension"""
     if file_path.suffix.lower() == '.pdf':
         pages = convert_pdf_to_markdown(str(file_path), str(output_path))
@@ -284,8 +370,9 @@ def convert_file(file_path, output_path, enable_chunking=False, chunk_strategy='
         # Create chunks using selected strategy
         chunks = chunk_text(content, chunk_strategy, chunk_size, overlap)
 
-        # Save chunks to dedicated folder (with optional embeddings)
-        chunks_folder, saved_files = save_chunks(chunks, Path(output_path), enable_embedding, api_key)
+        # Save chunks to dedicated folder (with optional embeddings and database)
+        chunks_folder, saved_files = save_chunks(chunks, Path(output_path), enable_embedding, api_key,
+                                                 chunk_strategy, postgres_url)
 
         # Remove original file
         os.remove(output_path)
@@ -368,13 +455,16 @@ def process_single_file():
                 print("[WARN] GEMINI_API_KEY not found in .env file. Embeddings disabled.")
                 enable_embedding = False
 
+    # Get PostgreSQL URL from .env (optional)
+    postgres_url = os.getenv("POSTGRES_URL")
+
     output_filename = file_path.stem + ".md"
     output_path = output_dir / output_filename
 
     try:
         print(f"\n[PROCESSING] {file_path.name}")
         result, chunks_folder = convert_file(file_path, output_path, enable_chunking, chunk_strategy,
-                                            chunk_size, overlap, enable_embedding, api_key)
+                                            chunk_size, overlap, enable_embedding, api_key, postgres_url)
         print(f"[OK] {result}")
         if enable_chunking and chunks_folder:
             print(f"[OUTPUT] Chunks saved to: {chunks_folder}")
@@ -446,6 +536,9 @@ def process_directory():
                 print("[WARN] GEMINI_API_KEY not found in .env file. Embeddings disabled.")
                 enable_embedding = False
 
+    # Get PostgreSQL URL from .env (optional)
+    postgres_url = os.getenv("POSTGRES_URL")
+
     # Find all supported files
     input_path = Path(input_dir)
     pdf_files = list(input_path.glob("*.pdf"))
@@ -481,7 +574,7 @@ def process_directory():
 
             print(f"\n[PROCESSING] {file_path.name}")
             result, chunks_folder = convert_file(file_path, output_path, enable_chunking, chunk_strategy,
-                                                chunk_size, overlap, enable_embedding, api_key)
+                                                chunk_size, overlap, enable_embedding, api_key, postgres_url)
             print(f"[OK] {result}")
             if chunks_folder:
                 chunks_folders.append(chunks_folder)
