@@ -31,7 +31,7 @@ Create `.env` file:
 ```env
 GEMINI_API_KEY=your_api_key_here
 
-# Optional - PostgreSQL for vector storage
+# PostgreSQL for vector storage
 POSTGRES_URL=postgresql://postgres:mypassword@localhost:5432/simple_rag
 ```
 

@@ -10,7 +10,7 @@ from datetime import datetime
 from dotenv import load_dotenv
 import psycopg
 
-from index_documents_standard import (
+from index_documents import (
     convert_file,
     chunk_text,
     generate_embedding,
