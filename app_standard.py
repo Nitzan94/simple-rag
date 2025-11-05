@@ -9,9 +9,8 @@ from pathlib import Path
 from datetime import datetime
 from dotenv import load_dotenv
 import psycopg
-from pgvector.psycopg import register_vector
 
-from index_documents import (
+from index_documents_standard import (
     convert_file,
     chunk_text,
     generate_embedding,
@@ -237,7 +236,6 @@ if enable_postgres:
         # Test connection
         try:
             with psycopg.connect(postgres_url) as conn:
-                register_vector(conn)
                 with conn.cursor() as cur:
                     cur.execute("SELECT COUNT(*) FROM document_chunks")
                     count = cur.fetchone()[0]
@@ -387,7 +385,6 @@ with tab1:
                         st.subheader("💾 Database Status")
                         try:
                             with psycopg.connect(postgres_url) as conn:
-                                register_vector(conn)
                                 with conn.cursor() as cur:
                                     cur.execute("SELECT COUNT(*) FROM document_chunks")
                                     total_chunks = cur.fetchone()[0]
@@ -507,7 +504,6 @@ with tab2:
                 st.subheader("💾 Database Status")
                 try:
                     with psycopg.connect(postgres_url) as conn:
-                        register_vector(conn)
                         with conn.cursor() as cur:
                             cur.execute("SELECT COUNT(*) FROM document_chunks")
                             total_chunks = cur.fetchone()[0]
@@ -524,7 +520,6 @@ with tab3:
     else:
         try:
             with psycopg.connect(postgres_url) as conn:
-                register_vector(conn)
                 with conn.cursor() as cur:
                     # Get total stats
                     cur.execute("SELECT COUNT(*) FROM document_chunks")

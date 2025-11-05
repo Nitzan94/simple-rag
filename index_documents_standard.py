@@ -1,3 +1,6 @@
+# ABOUTME: Document indexing RAG pipeline with PostgreSQL storage
+# ABOUTME: Provides document conversion, chunking, embeddings, and database storage
+
 import pdfplumber
 import re
 import os
@@ -7,7 +10,6 @@ from docx import Document
 from dotenv import load_dotenv
 import google.generativeai as genai
 import psycopg
-from pgvector.psycopg import register_vector
 from datetime import datetime
 import uuid
 
@@ -214,28 +216,25 @@ def generate_embedding(text, api_key):
         return None
 
 def create_table(conn):
-    """Create document_chunks table with pgvector extension if it doesn't exist"""
+    """Create document_chunks table for standard PostgreSQL (no pgvector extension)"""
     try:
         with conn.cursor() as cur:
-            # Enable pgvector extension
-            cur.execute("CREATE EXTENSION IF NOT EXISTS vector")
-
-            # Create table
+            # Create table with FLOAT[] for embeddings (standard PostgreSQL)
             cur.execute("""
                 CREATE TABLE IF NOT EXISTS document_chunks (
                     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                     chunk_text TEXT NOT NULL,
-                    embedding vector(768),
+                    embedding FLOAT[],
                     filename TEXT NOT NULL,
                     split_strategy TEXT NOT NULL,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
 
-            # Create index for vector similarity search
+            # Create standard index for filename searches
             cur.execute("""
-                CREATE INDEX IF NOT EXISTS document_chunks_embedding_idx
-                ON document_chunks USING ivfflat (embedding vector_cosine_ops)
+                CREATE INDEX IF NOT EXISTS idx_document_chunks_filename
+                ON document_chunks (filename)
             """)
 
             conn.commit()
@@ -245,15 +244,12 @@ def create_table(conn):
         conn.rollback()
 
 def save_to_database(chunks_data, postgres_url):
-    """Save chunks and embeddings to PostgreSQL database"""
+    """Save chunks and embeddings to standard PostgreSQL database"""
     if not postgres_url:
         return False
 
     try:
         with psycopg.connect(postgres_url) as conn:
-            # Register pgvector extension
-            register_vector(conn)
-
             # Create table if doesn't exist
             create_table(conn)
 
@@ -592,11 +588,12 @@ def process_directory():
         print(f"[OUTPUT] Files saved to: {output_dir}")
 
 def main():
-    print("Document to Markdown Converter (Hebrew RTL Support)")
+    print("Document to Markdown Converter")
     print("Supports: PDF, DOCX, TXT")
     print("Features: Hebrew text reversal (PDF), RTL formatting")
     print("Chunking: Fixed-size, Sentence-based, Paragraph-based")
     print("Embeddings: Google Gemini API")
+    print("Database: PostgreSQL with vector storage")
     print("=" * 70)
 
     # Ask for mode

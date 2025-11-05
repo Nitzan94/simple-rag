@@ -1,6 +1,6 @@
 # Simple RAG - Document to Markdown Converter
 
-Document to Markdown converter with Hebrew RTL support, multiple chunking strategies, and Google Gemini embeddings.
+RAG pipeline with document to Markdown converter with Hebrew RTL support, multiple chunking strategies, and Google Gemini embeddings.
 
 ## Features
 
@@ -35,7 +35,7 @@ GEMINI_API_KEY=your_api_key_here
 POSTGRES_URL=postgresql://postgres:mypassword@localhost:5432/simple_rag
 ```
 
-### PostgreSQL (Optional)
+### PostgreSQL
 
 Docker setup:
 

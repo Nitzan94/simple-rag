@@ -18,3 +18,11 @@ jeen-junior-task/
 
 # Streamlit
 .streamlit/
+
+# Old versions
+old/
+
+# Development files
+.claude/
+test-docs/
+rag-task.md
