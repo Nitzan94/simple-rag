@@ -13,7 +13,6 @@ wheels/
 .env
 
 # Output files
-output/
 jeen-junior-task/
 
 # Streamlit
