@@ -12,7 +12,7 @@ RAG pipeline with document to Markdown converter with Hebrew RTL support, multip
   - Paragraph-based splitting
 - **Embeddings**: Google Gemini API integration
 - **Storage**: PostgreSQL with pgvector for vector similarity search
-- **Output**: Organized chunk folders with embeddings.json + optional DB storage
+- **Output**: Organized chunk folders with embeddings.json + PostgreSQL storage
 
 ## Installation
 
@@ -48,22 +48,6 @@ docker exec pgvector psql -U postgres -c "CREATE DATABASE simple_rag;"
 Table auto-created: id (UUID), chunk_text, embedding (vector 768), filename, split_strategy, created_at
 
 ## Usage
-
-### Streamlit UI (Recommended)
-
-Run the web interface:
-
-```bash
-uv run streamlit run app.py
-```
-
-Features:
-- **Single File / Batch Upload**: Upload one or multiple files via tabs
-- **Live Settings**: Configure chunking strategy, embeddings, PostgreSQL in sidebar
-- **Real-time Preview**: View chunks inline with markdown rendering
-- **Downloads**: Download individual chunks and embeddings.json
-- **Statistics**: Processing time, file size, chunk count
-- **Database Status**: View PostgreSQL connection and total chunks stored
 
 ### CLI (Command Line)
 
@@ -120,6 +104,22 @@ output/
   }
 ]
 ```
+
+### Streamlit UI
+
+Run the web interface:
+
+```bash
+uv run streamlit run app.py
+```
+
+Features:
+- **Single File / Batch Upload**: Upload one or multiple files via tabs
+- **Live Settings**: Configure chunking strategy, embeddings, PostgreSQL in sidebar
+- **Real-time Preview**: View chunks inline with markdown rendering
+- **Downloads**: Download individual chunks and embeddings.json
+- **Statistics**: Processing time, file size, chunk count
+- **Database Status**: View PostgreSQL connection and total chunks stored
 
 ## Project Structure
 
