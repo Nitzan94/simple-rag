@@ -15,7 +15,7 @@ dependencies = [
 ]
 
 [project.scripts]
-simple-rag = "main:main"
+simple-rag = "index_documents:main"
 
 [dependency-groups]
 dev = [

@@ -589,7 +589,7 @@ with tab3:
                             # Fetch chunks for this document
                             if search_query:
                                 cur.execute("""
-                                    SELECT chunk_text, created_at
+                                    SELECT chunk_text, embedding, created_at
                                     FROM document_chunks
                                     WHERE filename = %s AND chunk_text ILIKE %s
                                     ORDER BY created_at
@@ -597,7 +597,7 @@ with tab3:
                                 """, (filename, f"%{search_query}%"))
                             else:
                                 cur.execute("""
-                                    SELECT chunk_text, created_at
+                                    SELECT chunk_text, embedding, created_at
                                     FROM document_chunks
                                     WHERE filename = %s
                                     ORDER BY created_at
@@ -609,11 +609,34 @@ with tab3:
                             st.write(f"Showing {len(chunks)} chunk(s)")
 
                             # Display chunks
-                            for idx, (chunk_text, created_at) in enumerate(chunks, 1):
-                                with st.expander(f"Chunk {idx} - {created_at.strftime('%Y-%m-%d %H:%M')}"):
+                            for idx, (chunk_text, embedding, created_at) in enumerate(chunks, 1):
+                                vector_status = "✅ Has vector" if embedding else "❌ No vector"
+                                vector_dim = f"({len(embedding)} dims)" if embedding else ""
+
+                                with st.expander(f"Chunk {idx} - {created_at.strftime('%Y-%m-%d %H:%M')} - {vector_status} {vector_dim}"):
                                     st.markdown(f'<div dir="rtl">{chunk_text[:1000]}</div>', unsafe_allow_html=True)
                                     if len(chunk_text) > 1000:
                                         st.caption(f"... ({len(chunk_text) - 1000} more characters)")
+
+                                    if embedding:
+                                        st.markdown("---")
+                                        st.caption(f"**Embedding Vector** ({len(embedding)} dimensions)")
+
+                                        with st.expander("Show vector values"):
+                                            # Display first 10 values as preview
+                                            st.code(f"First 10 values: {embedding[:10]}")
+                                            st.code(f"Last 10 values: {embedding[-10:]}")
+
+                                            # Full vector download
+                                            import json
+                                            vector_json = json.dumps({"embedding": embedding, "dimension": len(embedding)}, indent=2)
+                                            st.download_button(
+                                                "Download full vector",
+                                                vector_json,
+                                                file_name=f"chunk_{idx}_vector.json",
+                                                mime="application/json",
+                                                key=f"vector_dl_{filename}_{idx}"
+                                            )
 
                             # Delete document option
                             st.markdown("---")
