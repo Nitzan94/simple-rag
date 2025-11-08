@@ -157,7 +157,3 @@ Run in development:
 ```bash
 uv run python index_documents.py
 ```
-
-## License
-
-MIT
